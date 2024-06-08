@@ -8,7 +8,8 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-mongoose.connect("mongodb://localhost:27017/userdata", { useNewUrlParser: true, useUnifiedTopology: true });
+// Connect to MongoDB
+mongoose.connect("mongodb://localhost:27017/userdata");
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
@@ -16,11 +17,11 @@ db.once("open", () => {
 	console.log("Connected to MongoDB");
 });
 
-const User = require("./models/User");
+const User = require("./Users.js");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-//register route
+// Register route
 app.post("/register", async (req, res) => {
 	const { username, email, password } = req.body;
 	const hashedPassword = await bcrypt.hash(password, 10);
@@ -34,7 +35,7 @@ app.post("/register", async (req, res) => {
 	}
 });
 
-//login route
+// Login route
 app.post("/login", async (req, res) => {
 	const { email, password } = req.body;
 	const user = await User.findOne({ email });
@@ -52,6 +53,8 @@ app.post("/login", async (req, res) => {
 	res.status(200).json({ token });
 });
 
-app.listen(7000, () => {
-	console.log("Server is running on port 5000");
+// Start the server
+const PORT = 7000;
+app.listen(PORT, () => {
+	console.log(`Server is running on port ${PORT}`);
 });
