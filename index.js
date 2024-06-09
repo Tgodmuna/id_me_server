@@ -1,5 +1,6 @@
 require("dotenv").config();
 const http = require("http");
+const cors = require("cors");
 const mongoose = require("mongoose");
 const User = require("./models/users");
 const bcrypt = require("bcryptjs");
@@ -7,7 +8,7 @@ const nodemailer = require("nodemailer");
 const otpGenerator = require("otp-generator");
 const { v4: uuidv4 } = require("uuid");
 const jwt = require("jsonwebtoken");
-const { saveOtpData } = require("./handlers/handleOTP.js");
+const { saveOtpData, handleVerifyOtp } = require("./handlers/handleOTP.js");
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Load environment variables from .env file
@@ -21,8 +22,6 @@ db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", () => {
 	console.log("Connected to MongoDB");
 });
-
-// Handlers
 
 // handleRegister handles the registration of a new user
 async function handleRegister(req, res) {
@@ -172,33 +171,49 @@ async function handleLogin(req, res) {
 	});
 }
 
-const server = http.createServer((req, res) => {
-	// Enable CORS
-	res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-	res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-	res.setHeader("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers");
+// Create a CORS middleware
+const corsMiddleware = cors({
+	origin: "http://localhost:3000", // Allow only this origin
+	methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
+	allowedHeaders: ["Content-Type", "Access-Control-Allow-Headers"], // Allowed headers
+});
 
-	if (req.method === "OPTIONS") {
-		// Preflight request
-		res.writeHead(204, {
-			"Access-Control-Allow-Origin": "*",
-			"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-			"Access-Control-Allow-Headers": "Content-Type, Access-Control-Allow-Headers",
+// Utility function to use middleware with Node.js HTTP server
+const useMiddleware = (req, res, middleware) => {
+	return new Promise((resolve, reject) => {
+		middleware(req, res, (result) => {
+			if (result instanceof Error) {
+				return reject(result);
+			}
+			return resolve(result);
 		});
-		res.end();
-		return;
-	}
+	});
+};
+const server = http.createServer(async (req, res) => {
+	try {
+		await useMiddleware(req, res, corsMiddleware);
 
-	if (req.method === "POST" && req.url === "/register") {
-		handleRegister(req, res);
-	} else if (req.method === "POST" && req.url === "/login") {
-		handleLogin(req, res);
-	} else if (req.method === "POST" && req.url === "/verify-otp") {
-		handleVerifyOtp(req, res);
-	} else {
-		res.statusCode = 404;
+		if (req.method === "OPTIONS") {
+			res.writeHead(204);
+			res.end();
+			return;
+		}
+
+		if (req.method === "POST" && req.url === "/register") {
+			handleRegister(req, res);
+		} else if (req.method === "POST" && req.url === "/login") {
+			handleLogin(req, res);
+		} else if (req.method === "POST" && req.url === "/verify-otp") {
+			handleVerifyOtp(req, res);
+		} else {
+			res.statusCode = 404;
+			res.setHeader("Content-Type", "text/plain");
+			res.end("Not Found");
+		}
+	} catch (error) {
+		res.statusCode = 500;
 		res.setHeader("Content-Type", "text/plain");
-		res.end("Not Found");
+		res.end("Internal Server Error");
 	}
 });
 
