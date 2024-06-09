@@ -1,9 +1,9 @@
-const User = require("../models/users.js");
+const register = require("../models/registrationModel.js");
 
 const tempStorage = {};
 
-function saveOtpData(otpid, userData) {
-	tempStorage[otpid] = userData;
+function saveOtpData(otpid, registerData) {
+	tempStorage[otpid] = registerData;
 	console.log("extracted by SaveOTP function", tempStorage[otpid]);
 }
 
@@ -23,14 +23,11 @@ async function handleVerifyOtp(req, res) {
 	req.on("end", async () => {
 		const { otpid, otp } = JSON.parse(body);
 
-		console.log(`Received OTP ID: ${otpid}, OTP: ${otp}`);
-
 		const storedData = getOtpData(otpid);
 		if (!storedData) {
-			console.log(`Invalid OTP ID: ${otpid}`);
 			res.statusCode = 400;
 			res.setHeader("Content-Type", "text/plain");
-			res.end("Invalid OTP ID");
+			res.end("Invalid OTP");
 			return;
 		}
 
@@ -38,24 +35,24 @@ async function handleVerifyOtp(req, res) {
 
 		if (storedData.otp === otp) {
 			try {
-				const newUser = new User({
-					username: storedData.username,
+				const newregister = new register({
+					fullname: storedData.fullname,
 					email: storedData.email,
 					password: storedData.hashedPassword,
 				});
 
-				await newUser.save();
+				await newregister.save();
 				deleteOtpData(otpid);
 
-				console.log(`User registered successfully: ${storedData.email}`);
+				console.log(`register registered successfully: ${storedData.email}`);
 				res.statusCode = 200;
 				res.setHeader("Content-Type", "text/plain");
-				res.end("User registered successfully");
+				res.end("register registered successfully");
 			} catch (err) {
-				console.error("Error saving user: ", err);
+				console.error("Error saving register: ", err);
 				res.statusCode = 500;
 				res.setHeader("Content-Type", "text/plain");
-				res.end("Error saving user");
+				res.end("Error saving register");
 			}
 		} else {
 			console.log(`Invalid OTP for OTP ID: ${otpid}`);
@@ -65,6 +62,5 @@ async function handleVerifyOtp(req, res) {
 		}
 	});
 }
-
 
 module.exports = { saveOtpData, handleVerifyOtp };
