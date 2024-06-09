@@ -4,6 +4,7 @@ const tempStorage = {};
 
 function saveOtpData(otpId, userData) {
 	tempStorage[otpId] = userData;
+	console.log("extracted by SaveOTP function", tempStorage[otpId]);
 }
 
 function getOtpData(otpId) {
