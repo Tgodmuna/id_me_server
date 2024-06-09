@@ -21,6 +21,8 @@ const server = http.createServer((req, res) => {
 		handleRegister(req, res);
 	} else if (req.method === "POST" && req.url === "/login") {
 		handleLogin(req, res);
+	} else if (req.method === "POST" && req.url === "/verify-otp") {
+		handleVerifyOtp(req, res);
 	} else {
 		res.statusCode = 404;
 		res.setHeader("Content-Type", "text/plain");
