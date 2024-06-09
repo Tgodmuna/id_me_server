@@ -124,7 +124,7 @@ async function handleRegister(req, res) {
 						res.setHeader("Content-Type", "application/json");
 						res.end(
 							JSON.stringify({
-								text: `OTP sent to ${email}. Please enter the OTP to complete registration. Your OTP ID is ${otpId}.`,
+								text: `OTP sent to ${email}. Please enter the OTP to complete registration.`,
 								otpID: otpId,
 							})
 						);
