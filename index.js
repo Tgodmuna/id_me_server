@@ -43,6 +43,7 @@ async function handleRegister(req, res) {
 				const otp = otpGenerator.generate(6, { upperCase: false, specialChars: true, digits: true });
 				const otpId = uuidv4();
 
+				console.log(`Generated OTP: ${otp} for OTP ID: ${otpId}`);
 				saveOtpData(otpId, { username, email, hashedPassword, otp });
 
 				const transporter = nodemailer.createTransport({
