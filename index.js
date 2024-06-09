@@ -1,13 +1,13 @@
 require("dotenv").config();
 const http = require("http");
 const mongoose = require("mongoose");
-const User = require("./models/User");
+const User = require("./models/users");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const otpGenerator = require("otp-generator");
 const { v4: uuidv4 } = require("uuid");
-const { saveOtpData, handleVerifyOtp } = require("./otpHandler");
 const jwt = require("jsonwebtoken");
+const { saveOtpData } = require("./handlers/handleOTP.js");
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Load environment variables from .env file
@@ -15,7 +15,7 @@ const MONGO_URI = process.env.MONGO_URI;
 const PORT = process.env.PORT || 5000;
 
 // MongoDB connection
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(MONGO_URI);
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", () => {
@@ -23,6 +23,8 @@ db.once("open", () => {
 });
 
 // Handlers
+
+// handleRegister handles the registration of a new user
 async function handleRegister(req, res) {
 	let body = "";
 	req.on("data", (chunk) => {
@@ -135,6 +137,7 @@ async function handleRegister(req, res) {
 	});
 }
 
+//handle login
 async function handleLogin(req, res) {
 	let body = "";
 	req.on("data", (chunk) => {
