@@ -18,15 +18,24 @@ db.once("open", () => {
 
 const server = http.createServer((req, res) => {
 	// Enable CORS
-	res.setHeader("Access-Control-Allow-Origin", "localhost:3000");
+	res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
 	res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 	res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-	res.setHeader("Access-Control-Allow-Credentials", true);
+	res.setHeader("Access-Control-Allow-Credentials", "true");
 
 	if (req.method === "OPTIONS") {
-		res.statusCode = 204;
+		// Preflight request
+		res.writeHead(204, {
+			"Access-Control-Allow-Origin": "http://localhost:3000",
+			"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+			"Access-Control-Allow-Headers": "Content-Type, Authorization",
+			"Access-Control-Allow-Credentials": "true",
+		});
 		res.end();
-	} else if (req.method === "POST" && req.url === "/register") {
+		return;
+	}
+
+	if (req.method === "POST" && req.url === "/register") {
 		handleRegister(req, res);
 	} else if (req.method === "POST" && req.url === "/login") {
 		handleLogin(req, res);
@@ -42,3 +51,43 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`);
 });
+
+// Dummy handlers for illustration
+function handleRegister(req, res) {
+	let body = "";
+	req.on("data", (chunk) => {
+		body += chunk;
+	});
+	req.on("end", () => {
+		// Process the registration logic here
+		res.statusCode = 200;
+		res.setHeader("Content-Type", "application/json");
+		res.end(JSON.stringify({ message: "User registered successfully!" }));
+	});
+}
+
+function handleLogin(req, res) {
+	let body = "";
+	req.on("data", (chunk) => {
+		body += chunk;
+	});
+	req.on("end", () => {
+		// Process the login logic here
+		res.statusCode = 200;
+		res.setHeader("Content-Type", "application/json");
+		res.end(JSON.stringify({ message: "Login successful!" }));
+	});
+}
+
+function handleVerifyOtp(req, res) {
+	let body = "";
+	req.on("data", (chunk) => {
+		body += chunk;
+	});
+	req.on("end", () => {
+		// Process the OTP verification logic here
+		res.statusCode = 200;
+		res.setHeader("Content-Type", "application/json");
+		res.end(JSON.stringify({ message: "OTP verified successfully!" }));
+	});
+}
