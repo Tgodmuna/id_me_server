@@ -56,7 +56,7 @@ async function handleRegister(req, res) {
 				});
 				const mailOptions = {
 					from: {
-						name: VerificationBoard,
+						name: "VerificationBoard",
 						address: process.env.YAHOO_USER,
 					},
 					to: email,
