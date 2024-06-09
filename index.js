@@ -2,7 +2,7 @@ require("dotenv").config();
 const http = require("http");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const User = require("./models/users");
+const registre = require("./models/registrationModel.js");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const otpGenerator = require("otp-generator");
@@ -43,7 +43,6 @@ async function handleRegister(req, res) {
 				const otp = otpGenerator.generate(6, { upperCase: false, specialChars: true, digits: true });
 				const otpId = uuidv4();
 
-				console.log(`Generated OTP: ${otp} for OTP ID: ${otpId}`);
 				saveOtpData(otpId, { username, email, hashedPassword, otp });
 
 				const transporter = nodemailer.createTransport({
