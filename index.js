@@ -17,6 +17,11 @@ db.once("open", () => {
 });
 
 const server = http.createServer((req, res) => {
+	// Enable CORS
+	res.setHeader("Access-Control-Allow-Origin", "*");
+	res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+	res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
 	if (req.method === "POST" && req.url === "/register") {
 		handleRegister(req, res);
 	} else if (req.method === "POST" && req.url === "/login") {
