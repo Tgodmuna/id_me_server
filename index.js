@@ -48,14 +48,17 @@ async function handleRegister(req, res) {
 
 				const transporter = nodemailer.createTransport({
 					service: "yahoo",
+					host: "smtp.mail.yahoo.com",
 					auth: {
 						user: process.env.YAHOO_USER,
 						pass: process.env.YAHOO_PASS,
 					},
 				});
-
 				const mailOptions = {
-					from: process.env.YAHOO_USER,
+					from: {
+						name: VerificationBoard,
+						address: process.env.YAHOO_USER,
+					},
 					to: email,
 					subject: "OTP Verification",
 					html: `
