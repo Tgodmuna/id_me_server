@@ -105,7 +105,7 @@ async function handleRegister(req, res) {
                               <div class="otp">${otp}</div>
                               <p>This OTP is valid for a limited time, so please enter it as soon as possible.</p>
                               <p>If you have any questions or need further assistance, please don't hesitate to contact our support team.</p>
-                              <p>Best regards,<br>Your Company Name</p>
+                              <p>Best regards,<br>Verification Board</p>
                             </div>
                           </body>
                         </html>
@@ -181,7 +181,7 @@ const server = http.createServer((req, res) => {
 	if (req.method === "OPTIONS") {
 		// Preflight request
 		res.writeHead(204, {
-			"Access-Control-Allow-Origin": "http://localhost:3000",
+			"Access-Control-Allow-Origin": "*",
 			"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 			"Access-Control-Allow-Headers": "Content-Type, Access-Control-Allow-Headers",
 		});
