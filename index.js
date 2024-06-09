@@ -1,20 +1,170 @@
 require("dotenv").config();
 const http = require("http");
 const mongoose = require("mongoose");
-const { parse } = require("querystring");
+const User = require("./models/User");
+const bcrypt = require("bcryptjs");
+const nodemailer = require("nodemailer");
+const otpGenerator = require("otp-generator");
+const { v4: uuidv4 } = require("uuid");
+const { saveOtpData, handleVerifyOtp } = require("./otpHandler");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Load environment variables from .env file
 const MONGO_URI = process.env.MONGO_URI;
 const PORT = process.env.PORT || 5000;
 
 // MongoDB connection
-mongoose.connect(MONGO_URI);
-
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", () => {
 	console.log("Connected to MongoDB");
 });
+
+// Handlers
+async function handleRegister(req, res) {
+	let body = "";
+	req.on("data", (chunk) => {
+		body += chunk.toString();
+	});
+	req.on("end", async () => {
+		const { username, email, password } = JSON.parse(body);
+		const hashedPassword = await bcrypt.hash(password, 10);
+
+		try {
+			const existingUser = await User.findOne({ email });
+			if (existingUser) {
+				res.statusCode = 400;
+				res.setHeader("Content-Type", "text/plain");
+				res.end("Email already registered");
+			} else {
+				const otp = otpGenerator.generate(6, { upperCase: false, specialChars: false, digits: true });
+				const otpId = uuidv4();
+
+				saveOtpData(otpId, { username, email, hashedPassword, otp });
+
+				const transporter = nodemailer.createTransport({
+					service: "yahoo",
+					auth: {
+						user: process.env.YAHOO_USER,
+						pass: process.env.YAHOO_PASS,
+					},
+				});
+
+				const mailOptions = {
+					from: process.env.YAHOO_USER,
+					to: email,
+					subject: "OTP Verification",
+					html: `
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <meta charset="UTF-8">
+                            <title>Registration OTP</title>
+                            <style>
+                              body {
+                                font-family: Arial, sans-serif;
+                                background-color: #f5f5f5;
+                                color: #333;
+                                padding: 20px;
+                              }
+                              .container {
+                                max-width: 600px;
+                                margin: 0 auto;
+                                background-color: #fff;
+                                padding: 20px;
+                                border-radius: 5px;
+                                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                              }
+                              h1 {
+                                color: #007bff;
+                                text-align: center;
+                              }
+                              p {
+                                line-height: 1.5;
+                              }
+                              .otp {
+                                font-size: 24px;
+                                font-weight: bold;
+                                text-align: center;
+                                margin: 20px 0;
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="container">
+                              <h1>Registration OTP</h1>
+                              <p>Dear User,</p>
+                              <p>Thank you for registering with our platform. To complete the registration process, please use the following One-Time Password (OTP):</p>
+                              <div class="otp">${otp}</div>
+                              <p>This OTP is valid for a limited time, so please enter it as soon as possible.</p>
+                              <p>If you have any questions or need further assistance, please don't hesitate to contact our support team.</p>
+                              <p>Best regards,<br>Your Company Name</p>
+                            </div>
+                          </body>
+                        </html>
+                    `,
+				};
+
+				transporter.sendMail(mailOptions, (error, info) => {
+					if (error) {
+						console.log("Error sending OTP email: ", error);
+						res.statusCode = 500;
+						res.setHeader("Content-Type", "text/plain");
+						res.end("Error sending OTP");
+					} else {
+						console.log("Email sent: " + info.response);
+						res.statusCode = 200;
+						res.setHeader("Content-Type", "application/json");
+						res.end(
+							JSON.stringify({
+								text: `OTP sent to ${email}. Please enter the OTP to complete registration. Your OTP ID is ${otpId}.`,
+								otpID: otpId,
+							})
+						);
+					}
+				});
+			}
+		} catch (err) {
+			console.error("Error during registration: ", err);
+			res.statusCode = 500;
+			res.setHeader("Content-Type", "text/plain");
+			res.end("Error registering user");
+		}
+	});
+}
+
+async function handleLogin(req, res) {
+	let body = "";
+	req.on("data", (chunk) => {
+		body += chunk.toString();
+	});
+	req.on("end", async () => {
+		const { email, password } = JSON.parse(body);
+		const user = await User.findOne({ email });
+
+		if (!user) {
+			res.statusCode = 400;
+			res.setHeader("Content-Type", "text/plain");
+			res.end("User not found");
+			return;
+		}
+
+		const isMatch = await bcrypt.compare(password, user.password);
+		if (!isMatch) {
+			res.statusCode = 400;
+			res.setHeader("Content-Type", "text/plain");
+			res.end("Invalid password");
+			return;
+		}
+
+		const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1h" });
+		res.statusCode = 200;
+		res.setHeader("Content-Type", "application/json");
+		res.end(JSON.stringify({ token }));
+	});
+}
 
 const server = http.createServer((req, res) => {
 	// Enable CORS
@@ -47,43 +197,3 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`);
 });
-
-// Dummy handlers for illustration
-function handleRegister(req, res) {
-	let body = "";
-	req.on("data", (chunk) => {
-		body += chunk;
-	});
-	req.on("end", () => {
-		// Process the registration logic here
-		res.statusCode = 200;
-		res.setHeader("Content-Type", "application/json");
-		res.end(JSON.stringify({ message: "User registered successfully!" }));
-	});
-}
-
-function handleLogin(req, res) {
-	let body = "";
-	req.on("data", (chunk) => {
-		body += chunk;
-	});
-	req.on("end", () => {
-		// Process the login logic here
-		res.statusCode = 200;
-		res.setHeader("Content-Type", "application/json");
-		res.end(JSON.stringify({ message: "Login successful!" }));
-	});
-}
-
-function handleVerifyOtp(req, res) {
-	let body = "";
-	req.on("data", (chunk) => {
-		body += chunk;
-	});
-	req.on("end", () => {
-		// Process the OTP verification logic here
-		res.statusCode = 200;
-		res.setHeader("Content-Type", "application/json");
-		res.end(JSON.stringify({ message: "OTP verified successfully!" }));
-	});
-}
