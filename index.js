@@ -47,17 +47,17 @@ async function handleRegister(req, res) {
 				saveOtpData(otpId, { username, email, hashedPassword, otp });
 
 				const transporter = nodemailer.createTransport({
-					service: "yahoo",
-					host: "smtp.mail.yahoo.com",
+					service: "gmail",
+					host: "smtp.gmail.com",
 					auth: {
-						user: process.env.YAHOO_USER,
-						pass: process.env.YAHOO_PASS,
+						user: process.env.EMAIL_USER,
+						pass: process.env.EMAIL_PASS,
 					},
 				});
 				const mailOptions = {
 					from: {
 						name: "VerificationBoard",
-						address: process.env.YAHOO_USER,
+						address: process.env.EMAIL_USER,
 					},
 					to: email,
 					subject: "OTP Verification",
