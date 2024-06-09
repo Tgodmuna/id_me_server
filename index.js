@@ -40,7 +40,7 @@ async function handleRegister(req, res) {
 				res.setHeader("Content-Type", "text/plain");
 				res.end("Email already registered");
 			} else {
-				const otp = otpGenerator.generate(6, { upperCase: false, specialChars: false, digits: true });
+				const otp = otpGenerator.generate(6, { upperCase: false, specialChars: true, digits: true });
 				const otpId = uuidv4();
 
 				saveOtpData(otpId, { username, email, hashedPassword, otp });
