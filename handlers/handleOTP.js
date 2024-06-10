@@ -1,4 +1,4 @@
-const User = require("../models/registerModel.js");
+const User = require("../models/users.js");
 
 const tempStorage = {};
 
@@ -39,7 +39,7 @@ async function handleVerifyOtp(req, res) {
 		if (storedData.otp === otp) {
 			try {
 				const newUser = new User({
-					fullName: storedData.username,
+					username: storedData.username,
 					email: storedData.email,
 					password: storedData.hashedPassword,
 				});
@@ -65,5 +65,6 @@ async function handleVerifyOtp(req, res) {
 		}
 	});
 }
+
 
 module.exports = { saveOtpData, handleVerifyOtp };
