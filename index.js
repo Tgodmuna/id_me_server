@@ -139,6 +139,7 @@ async function handleRegister(req, res) {
 	});
 }
 
+
 //handle login
 async function handleLogin(req, res) {
 	let body = "";
@@ -189,6 +190,8 @@ const useMiddleware = (req, res, middleware) => {
 		});
 	});
 };
+
+
 const server = http.createServer(async (req, res) => {
 	try {
 		await useMiddleware(req, res, corsMiddleware);
@@ -220,3 +223,4 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`);
 });
+
