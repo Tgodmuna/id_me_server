@@ -7,12 +7,12 @@ function saveOtpData(otpid, userData) {
 	console.log("extracted by SaveOTP function", tempStorage[otpid]);
 }
 
-function getOtpData(otpId) {
-	return tempStorage[otpId];
+function getOtpData(otpid) {``
+	return tempStorage[otpid];
 }
 
-function deleteOtpData(otpId) {
-	delete tempStorage[otpId];
+function deleteOtpData(otpid) {
+	delete tempStorage[otpid];
 }
 
 async function handleVerifyOtp(req, res) {
@@ -21,7 +21,7 @@ async function handleVerifyOtp(req, res) {
 		body += chunk.toString();
 	});
 	req.on("end", async () => {
-		const { otpId, otp } = JSON.parse(body);
+		const { otpid, otp } = JSON.parse(body);
 
 		console.log(`Received OTP ID: ${otpid}, OTP: ${otp}`);
 
@@ -34,7 +34,7 @@ async function handleVerifyOtp(req, res) {
 			return;
 		}
 
-		console.log(`Stored OTP data for OTP ID: ${otpId}`, storedData);
+		console.log(`Stored OTP data for OTP ID: ${otpid}`, storedData);
 
 		if (storedData.otp === otp) {
 			try {
@@ -58,7 +58,7 @@ async function handleVerifyOtp(req, res) {
 				res.end("Error saving user");
 			}
 		} else {
-			console.log(`Invalid OTP for OTP ID: ${otpId}`);
+			console.log(`Invalid OTP for OTP ID: ${otpid}`);
 			res.statusCode = 400;
 			res.setHeader("Content-Type", "text/plain");
 			res.end("Invalid OTP");
