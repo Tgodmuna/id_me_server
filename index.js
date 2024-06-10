@@ -2,7 +2,7 @@ require("dotenv").config();
 const http = require("http");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const registre = require("./models/registrationModel.js");
+// const registre = require("./models/registerModel.js");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const otpGenerator = require("otp-generator");
