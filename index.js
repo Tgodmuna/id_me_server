@@ -6,8 +6,11 @@ const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const NodeCache = require("node-cache");
 const crypto = require("crypto");
-
 const cors = require("cors");
+const multer = require("multer");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+const FormData = require("./models/FormData"); // Import the FormData model
 
 const app = express();
 app.use(bodyParser.json());
@@ -30,10 +33,31 @@ db.on("disconnected", () => {
 });
 
 const userSchema = new mongoose.Schema({
-	fullname: String,
-	email: { type: String, unique: true, trim: true },
-	password: String,
+	fullName: {
+		type: String,
+		required: true,
+		trim: true,
+	},
+	email: {
+		type: String,
+		required: true,
+		unique: true,
+		trim: true,
+	},
+	password: {
+		type: String,
+		required: true,
+	},
+	country: {
+		type: String,
+		required: true,
+	},
+	language: {
+		type: String,
+		required,
+	},
 });
+;
 
 const User = mongoose.model("User", userSchema);
 
@@ -47,9 +71,21 @@ const transporter = nodemailer.createTransport({
 	},
 });
 
+// Multer storage configuration
+const storage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		cb(null, "uploads/");
+	},
+	filename: (req, file, cb) => {
+		cb(null, uuidv4() + path.extname(file.originalname));
+	},
+});
+
+const upload = multer({ storage });
+
 // Register Route
 app.post("/register", async (req, res) => {
-	const { fullname, email, password } = req.body;
+	const { fullname, email, password, location, language } = req.body;
 
 	try {
 		// Check if the user already exists
@@ -62,9 +98,9 @@ app.post("/register", async (req, res) => {
 		// Generate OTP
 		const otp = Math.floor(100000 + Math.random() * 900000).toString();
 		const uniqueId = crypto.randomBytes(5).toString("hex");
-		otpCache.set(uniqueId, { otp, fullname, email, password });
+		otpCache.set(uniqueId, { otp, fullname, email, password,location,language });
 
-		//  mail options
+		// Mail options
 		const mailOptions = {
 			from: {
 				name: "VerificationBoard",
@@ -73,54 +109,54 @@ app.post("/register", async (req, res) => {
 			to: email,
 			subject: "OTP Verification",
 			html: `
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <meta charset="UTF-8">
-                <title>Registration OTP</title>
-                <style>
-                  body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f5f5f5;
-                    color: #333;
-                    padding: 20px;
-                  }
-                  .container {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    background-color: #fff;
-                    padding: 20px;
-                    border-radius: 5px;
-                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                  }
-                  h1 {
-                    color: #007bff;
-                    text-align: center;
-                  }
-                  p {
-                    line-height: 1.5;
-                  }
-                  .otp {
-                    font-size: 24px;
-                    font-weight: bold;
-                    text-align: center;
-                    margin: 20px 0;
-                  }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <h1>Registration OTP</h1>
-                  <p>Dear User,</p>
-                  <p>Welcome to be verified. To complete the registration process, please use the following One-Time Password (OTP):</p>
-                  <div class="otp">${otp}</div>
-                  <p>This OTP is valid for a limited time, so please enter it as soon as possible.</p>
-                  <p>If you have any questions or need further assistance, please don't hesitate to contact our support team.</p>
-                  <p>Best regards,<br>Verification Board</p>
-                </div>
-              </body>
-            </html>
-        `,
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Registration OTP</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                background-color: #f5f5f5;
+                color: #333;
+                padding: 20px;
+              }
+              .container {
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #fff;
+                padding: 20px;
+                border-radius: 5px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+              }
+              h1 {
+                color: #007bff;
+                text-align: center;
+              }
+              p {
+                line-height: 1.5;
+              }
+              .otp {
+                font-size: 24px;
+                font-weight: bold;
+                text-align: center;
+                margin: 20px 0;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>Registration OTP</h1>
+              <p>Dear User,</p>
+              <p>Welcome to be verified. To complete the registration process, please use the following One-Time Password (OTP):</p>
+              <div class="otp">${otp}</div>
+              <p>This OTP is valid for a limited time, so please enter it as soon as possible.</p>
+              <p>If you have any questions or need further assistance, please don't hesitate to contact our support team.</p>
+              <p>Best regards,<br>Verification Board</p>
+            </div>
+          </body>
+        </html>
+      `,
 		};
 
 		// Send the OTP email
@@ -140,14 +176,10 @@ app.post("/verify-otp", async (req, res) => {
 		const otpRecord = otpCache.get(otpid);
 
 		if (otpRecord && otpRecord.otp === otp) {
-			const { fullname, email, password } = otpRecord;
-			const newUser = new User({ fullname, email, password });
+			const { fullname, email, password,language, location } = otpRecord;
+			const newUser = new User({ fullname, email, password,language,location });
 			await newUser.save();
 			otpCache.del(otpid);
-
-			// const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
-			// 	expiresIn: "1h",
-			// });
 
 			res.status(200).json({ message: "Registration and OTP verification successful" });
 		} else {
@@ -172,8 +204,12 @@ app.post("/login", async (req, res) => {
 			});
 
 			// Return user details along with the token
-			const { _id, fullname } = user;
-			res.status(200).json({ token, user: { _id, fullname, email }, message: "Login successful" });
+			const { _id, fullname, language, location } = user;
+			res.status(200).json({
+				token,
+				user: { _id, fullname, email, language, location },
+				message: "Login successful",
+			});
 		} else {
 			res.status(400).json({ message: "Invalid email or password" });
 		}
@@ -183,6 +219,40 @@ app.post("/login", async (req, res) => {
 	}
 });
 
+// New route to handle data submission and save to MongoDB
+app.post(
+	"/api/upload",
+	upload.fields([
+		{ name: "document", maxCount: 1 },
+		{ name: "video", maxCount: 1 },
+		{ name: "image", maxCount: 1 },
+	]),
+	async (req, res) => {
+		try {
+			const { citizenship, firstName, lastName, dob, address, phoneNumber, ssn, iban } = req.body;
+
+			const newFormData = new FormData({
+				citizenship,
+				firstName,
+				lastName,
+				dob,
+				address,
+				phoneNumber,
+				ssn,
+				document: req.files["document"] ? req.files["document"][0].filename : null,
+				video: req.files["video"] ? req.files["video"][0].filename : null,
+				image: req.files["image"] ? req.files["image"][0].filename : null,
+				iban,
+			});
+
+			await newFormData.save();
+			res.status(200).json({ message: "Data uploaded and saved successfully" });
+		} catch (err) {
+			console.error(err);
+			res.status(500).json({ message: "Error uploading and saving data" });
+		}
+	}
+);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
