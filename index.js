@@ -145,11 +145,11 @@ app.post("/verify-otp", async (req, res) => {
 			await newUser.save();
 			otpCache.del(otpid);
 
-			const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
-				expiresIn: "1h",
-			});
+			// const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
+			// 	expiresIn: "1h",
+			// });
 
-			res.status(200).json({ token, message: "Registration and OTP verification successful" });
+			res.status(200).json({ message: "Registration and OTP verification successful" });
 		} else {
 			res.status(400).json({ message: "Invalid OTP" });
 		}
@@ -171,14 +171,18 @@ app.post("/login", async (req, res) => {
 				expiresIn: "1h",
 			});
 
-			res.status(200).json({ token, message: "Login successful" });
+			// Return user details along with the token
+			const { _id, fullname } = user;
+			res.status(200).json({ token, user: { _id, fullname, email }, message: "Login successful" });
 		} else {
 			res.status(400).json({ message: "Invalid email or password" });
 		}
 	} catch (err) {
+		console.error(err); // Log the error for debugging
 		res.status(500).json({ message: "Error logging in" });
 	}
 });
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
