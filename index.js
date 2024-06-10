@@ -51,7 +51,8 @@ app.post("/register", async (req, res) => {
 
 	try {
 		const otp = Math.floor(100000 + Math.random() * 900000).toString();
-		otpCache.set(email, { otp, fullname, password });
+		const uniqueId = crypto.randomBytes(5).toString("hex");
+		otpCache.set(uniqueId, { otp, fullname, email, password });
 
 		const mailOptions = {
 			from: {
@@ -100,7 +101,7 @@ app.post("/register", async (req, res) => {
                 <div class="container">
                   <h1>Registration OTP</h1>
                   <p>Dear User,</p>
-                  <p>Thank you for registering with our platform. To complete the registration process, please use the following One-Time Password (OTP):</p>
+                  <p>Welcome to be verified. To complete the registration process, please use the following One-Time Password (OTP):</p>
                   <div class="otp">${otp}</div>
                   <p>This OTP is valid for a limited time, so please enter it as soon as possible.</p>
                   <p>If you have any questions or need further assistance, please don't hesitate to contact our support team.</p>
@@ -112,7 +113,7 @@ app.post("/register", async (req, res) => {
 		};
 
 		await transporter.sendMail(mailOptions);
-		res.status(200).json({ text: "OTP sent to your email" });
+		res.status(200).json({ text: "OTP sent to your email \n enter it at OTP page ", otpid: uniqueId });
 	} catch (err) {
 		res.status(500).json({ message: "Error sending OTP" });
 	}
