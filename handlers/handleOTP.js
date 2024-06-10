@@ -1,4 +1,4 @@
-const User = require("../models/users.js");
+const User = require("../models/registerModel.js");
 
 const tempStorage = {};
 
@@ -7,7 +7,7 @@ function saveOtpData(otpid, userData) {
 	console.log("extracted by SaveOTP function", tempStorage[otpid]);
 }
 
-function getOtpData(otpid) {``
+function getOtpData(otpid) {
 	return tempStorage[otpid];
 }
 
@@ -39,7 +39,7 @@ async function handleVerifyOtp(req, res) {
 		if (storedData.otp === otp) {
 			try {
 				const newUser = new User({
-					username: storedData.username,
+					fullName: storedData.fullname,
 					email: storedData.email,
 					password: storedData.hashedPassword,
 				});
@@ -65,6 +65,5 @@ async function handleVerifyOtp(req, res) {
 		}
 	});
 }
-
 
 module.exports = { saveOtpData, handleVerifyOtp };
