@@ -39,7 +39,7 @@ async function handleVerifyOtp(req, res) {
 		if (storedData.otp === otp) {
 			try {
 				const newUser = new User({
-					fullName: storedData.fullname,
+					username: storedData.username,
 					email: storedData.email,
 					password: storedData.hashedPassword,
 				});
