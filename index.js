@@ -5,11 +5,13 @@ const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const NodeCache = require("node-cache");
+const cors = require("cors"); // Import the cors package
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors()); // Enable CORS for all routes
 
-mongoose.connect( process.env.MONGO_URI )
+mongoose.connect(process.env.MONGO_URI);
 
 const db = mongoose.connection;
 
