@@ -2,9 +2,9 @@ const User = require("../models/users.js");
 
 const tempStorage = {};
 
-function saveOtpData(otpId, userData) {
-	tempStorage[otpId] = userData;
-	console.log("extracted by SaveOTP function", tempStorage[otpId]);
+function saveOtpData(otpid, userData) {
+	tempStorage[otpid] = userData;
+	console.log("extracted by SaveOTP function", tempStorage[otpid]);
 }
 
 function getOtpData(otpId) {
@@ -23,11 +23,11 @@ async function handleVerifyOtp(req, res) {
 	req.on("end", async () => {
 		const { otpId, otp } = JSON.parse(body);
 
-		console.log(`Received OTP ID: ${otpId}, OTP: ${otp}`);
+		console.log(`Received OTP ID: ${otpid}, OTP: ${otp}`);
 
-		const storedData = getOtpData(otpId);
+		const storedData = getOtpData(otpid);
 		if (!storedData) {
-			console.log(`Invalid OTP ID: ${otpId}`);
+			console.log(`Invalid OTP ID: ${otpid}`);
 			res.statusCode = 400;
 			res.setHeader("Content-Type", "text/plain");
 			res.end("Invalid OTP ID");
@@ -45,7 +45,7 @@ async function handleVerifyOtp(req, res) {
 				});
 
 				await newUser.save();
-				deleteOtpData(otpId);
+				deleteOtpData(otpid);
 
 				console.log(`User registered successfully: ${storedData.email}`);
 				res.statusCode = 200;
