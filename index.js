@@ -5,6 +5,8 @@ const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const NodeCache = require("node-cache");
+const crypto = require("crypto");
+
 const cors = require("cors"); // Import the cors package
 
 const app = express();
@@ -115,22 +117,23 @@ app.post("/register", async (req, res) => {
 		await transporter.sendMail(mailOptions);
 		res.status(200).json({ text: "OTP sent to your email \n enter it at OTP page ", otpid: uniqueId });
 	} catch (err) {
+		console.error(err); // Log the error for debugging
 		res.status(500).json({ message: "Error sending OTP" });
 	}
 });
 
 // OTP Verification Route
 app.post("/verify-otp", async (req, res) => {
-	const { email, otp } = req.body;
+	const { otpid, otp } = req.body;
 
 	try {
-		const otpRecord = otpCache.get(email);
+		const otpRecord = otpCache.get(otpid);
 
 		if (otpRecord && otpRecord.otp === otp) {
-			const { fullname, password } = otpRecord;
+			const { fullname, email, password } = otpRecord;
 			const newUser = new User({ fullname, email, password });
 			await newUser.save();
-			otpCache.del(email);
+			otpCache.del(otpid);
 
 			const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
 				expiresIn: "1h",
@@ -141,6 +144,7 @@ app.post("/verify-otp", async (req, res) => {
 			res.status(400).json({ message: "Invalid OTP" });
 		}
 	} catch (err) {
+		console.error(err); // Log the error for debugging
 		res.status(500).json({ message: "Error verifying OTP" });
 	}
 });
