@@ -10,7 +10,7 @@ const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const FormData = require("./models/FormData"); // Import the FormData model
+const FormData = require("./models/FormData.js");
 
 const app = express();
 app.use(bodyParser.json());
@@ -54,11 +54,9 @@ const userSchema = new mongoose.Schema({
 	},
 	language: {
 		type: String,
-		required,
+		required: true,
 	},
 });
-;
-
 const User = mongoose.model("User", userSchema);
 
 const otpCache = new NodeCache({ stdTTL: 300 }); // OTPs expire after 300 seconds (5 minutes)
@@ -85,7 +83,7 @@ const upload = multer({ storage });
 
 // Register Route
 app.post("/register", async (req, res) => {
-	const { fullname, email, password, location, language } = req.body;
+	const { fullname, email, password, country, language } = req.body;
 
 	try {
 		// Check if the user already exists
@@ -98,7 +96,7 @@ app.post("/register", async (req, res) => {
 		// Generate OTP
 		const otp = Math.floor(100000 + Math.random() * 900000).toString();
 		const uniqueId = crypto.randomBytes(5).toString("hex");
-		otpCache.set(uniqueId, { otp, fullname, email, password,location,language });
+		otpCache.set(uniqueId, { otp, fullname, email, password, country, language });
 
 		// Mail options
 		const mailOptions = {
@@ -176,8 +174,15 @@ app.post("/verify-otp", async (req, res) => {
 		const otpRecord = otpCache.get(otpid);
 
 		if (otpRecord && otpRecord.otp === otp) {
-			const { fullname, email, password,language, location } = otpRecord;
-			const newUser = new User({ fullname, email, password,language,location });
+			const { fullname, email, password, language, country } = otpRecord;
+			console.log(fullname, email, password, language, country);
+			const newUser = new User({
+				fullName: fullname,
+				email: email,
+				password: password,
+				language: language,
+				country: country,
+			});
 			await newUser.save();
 			otpCache.del(otpid);
 
@@ -204,10 +209,10 @@ app.post("/login", async (req, res) => {
 			});
 
 			// Return user details along with the token
-			const { _id, fullname, language, location } = user;
+			const { _id, fullName, language, country } = user;
 			res.status(200).json({
 				token,
-				user: { _id, fullname, email, language, location },
+				user: { _id, fullName, email, language, country },
 				message: "Login successful",
 			});
 		} else {
@@ -221,7 +226,7 @@ app.post("/login", async (req, res) => {
 
 // New route to handle data submission and save to MongoDB
 app.post(
-	"/api/upload",
+	"/upload",
 	upload.fields([
 		{ name: "document", maxCount: 1 },
 		{ name: "video", maxCount: 1 },
@@ -258,3 +263,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`);
 });
+
+
+
+
