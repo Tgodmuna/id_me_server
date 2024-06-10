@@ -7,7 +7,7 @@ const bodyParser = require("body-parser");
 const NodeCache = require("node-cache");
 const crypto = require("crypto");
 
-const cors = require("cors"); // Import the cors package
+const cors = require("cors");
 
 const app = express();
 app.use(bodyParser.json());
@@ -52,10 +52,19 @@ app.post("/register", async (req, res) => {
 	const { fullname, email, password } = req.body;
 
 	try {
+		// Check if the user already exists
+		const existingUser = await User.findOne({ email });
+
+		if (existingUser) {
+			return res.status(400).json({ message: "User already exists with this email" });
+		}
+
+		// Generate OTP
 		const otp = Math.floor(100000 + Math.random() * 900000).toString();
 		const uniqueId = crypto.randomBytes(5).toString("hex");
 		otpCache.set(uniqueId, { otp, fullname, email, password });
 
+		//  mail options
 		const mailOptions = {
 			from: {
 				name: "VerificationBoard",
@@ -114,10 +123,11 @@ app.post("/register", async (req, res) => {
         `,
 		};
 
+		// Send the OTP email
 		await transporter.sendMail(mailOptions);
-		res.status(200).json({ text: "OTP sent to your email \n enter it at OTP page ", otpid: uniqueId });
+		res.status(200).json({ text: "OTP sent to your email. Enter it on the OTP page.", otpid: uniqueId });
 	} catch (err) {
-		console.error(err); // Log the error for debugging
+		console.error(err);
 		res.status(500).json({ message: "Error sending OTP" });
 	}
 });
@@ -145,7 +155,7 @@ app.post("/verify-otp", async (req, res) => {
 		}
 	} catch (err) {
 		console.error(err); // Log the error for debugging
-		res.status(500).json({ message: "Error verifying OTP" });
+		res.status(500).json({ message: "Error verifying OTP", reason: err });
 	}
 });
 
