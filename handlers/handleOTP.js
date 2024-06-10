@@ -42,6 +42,8 @@ async function handleVerifyOtp(req, res) {
 					username: storedData.username,
 					email: storedData.email,
 					password: storedData.hashedPassword,
+					country: storedData.country,
+					language: storedData.language,
 				});
 
 				await newUser.save();
@@ -65,6 +67,5 @@ async function handleVerifyOtp(req, res) {
 		}
 	});
 }
-
 
 module.exports = { saveOtpData, handleVerifyOtp };

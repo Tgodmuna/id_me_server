@@ -16,6 +16,14 @@ const user = new mongoose.Schema({
 		type: String,
 		required: true,
 	},
+	country: {
+		type: String,
+		required: true,
+	},
+	language: {
+		type: String,
+		required,
+	},
 });
 
 const register = mongoose.model("user", user);

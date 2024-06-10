@@ -11,7 +11,7 @@ export async function handleRegister(req, res) {
 		body += chunk.toString();
 	});
 	req.on("end", async () => {
-		const { username, email, password } = JSON.parse(body);
+		const { username, email, password, language, country } = JSON.parse(body);
 		const hashedPassword = await bcrypt.hash(password, 10);
 
 		try {
@@ -24,7 +24,7 @@ export async function handleRegister(req, res) {
 				const otp = otpGenerator.generate(6, { upperCase: false, specialChars: false, digits: true });
 				const otpId = uuidv4();
 
-				saveOtpData(otpId, { username, email, hashedPassword, otp });
+				saveOtpData(otpId, { username, email, language, country, hashedPassword, otp });
 
 				const transporter = nodemailer.createTransport({
 					service: "yahoo",
