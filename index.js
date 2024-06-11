@@ -204,7 +204,29 @@ app.post(
 	]),
 	async (req, res) => {
 		try {
-			const { citizenship, firstName, lastName, dob, address, phoneNumber, ssn, iban } = req.body;
+			// Log the request body and files
+			console.log("Request Body:", req.body);
+			console.log("Uploaded Files:", req.files);
+
+			const { citizenship, firstName, lastName, dob, address, phoneNumber, ssn, iban, userDetails } =
+				req.body;
+
+			// Check if required fields are present
+			if (!citizenship || !firstName || !lastName || !dob || !address || !phoneNumber) {
+				return res.status(400).json({ message: "All fields are required" });
+			}
+
+			// Validate SSN if citizenship is USA
+			if (citizenship === "USA" && !ssn) {
+				return res.status(400).json({ message: "SSN is required for USA citizenship" });
+			}
+
+			// Validate IBAN if citizenship is Germany
+			if (citizenship === "Germany" && !iban) {
+				return res.status(400).json({ message: "IBAN is required for Germany citizenship" });
+			}
+
+			const parsedUserdetails = JSON.parse(userDetails);
 
 			const newFormData = new FormData({
 				citizenship,
@@ -213,21 +235,127 @@ app.post(
 				dob,
 				address,
 				phoneNumber,
-				ssn,
+				ssn: citizenship === "USA" ? ssn : null,
+				iban: citizenship === "Germany" ? iban : null,
 				document: req.files["document"] ? req.files["document"][0].filename : null,
 				video: req.files["video"] ? req.files["video"][0].filename : null,
 				image: req.files["image"] ? req.files["image"][0].filename : null,
-				iban,
+				UserFullName: parsedUserdetails.fullName,
+				userID: parsedUserdetails._id,
 			});
 
+			// Save the new form data
 			await newFormData.save();
+
 			res.status(200).json({ message: "Data uploaded and saved successfully" });
 		} catch (err) {
-			console.error(err);
-			res.status(500).json({ message: "Error uploading and saving data" });
+			// Log the error
+			console.error("Error:", err);
+
+			res.status(500).json({ message: "Error uploading and saving data", error: err.message });
 		}
 	}
 );
+
+// Get all users route
+app.get("/users", async (req, res) => {
+    try {
+        // Fetch all users from the database
+        const users = await User.find();
+        
+        // Return the list of users as JSON response
+        res.status(200).json(users);
+    } catch (err) {
+        // If an error occurs, send an error response
+        console.error("Error fetching users:", err);
+        res.status(500).json({ message: "Error fetching users", error: err });
+    }
+});
+
+
+// Send email to a particular user route
+app.post("/send-email", async (req, res) => {
+    const { userId, subject, message } = req.body;
+
+    try {
+        // Fetch the user from the database based on the userId
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Construct the email options
+        const mailOptions = {
+            from: {
+                name: "Admin",
+                address: process.env.EMAIL_USER,
+            },
+            to: user.email,
+            subject: subject,
+            text: message,
+        };
+
+        // Send the email
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ message: "Email sent successfully" });
+    } catch (err) {
+        // If an error occurs, send an error response
+        console.error("Error sending email:", err);
+        res.status(500).json({ message: "Error sending email", error: err });
+    }
+});
+
+
+// Post notification to a particular user route
+app.post("/post-notification", async (req, res) => {
+    const { userId, notification } = req.body;
+
+    try {
+        // Fetch the user from the database based on the userId
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update the user's notifications array with the new notification
+        user.notifications.push(notification);
+
+        // Save the updated user document
+        await user.save();
+
+        res.status(200).json({ message: "Notification posted successfully" });
+    } catch (err) {
+        // If an error occurs, send an error response
+        console.error("Error posting notification:", err);
+        res.status(500).json({ message: "Error posting notification", error: err });
+    }
+});
+
+
+// Fetch all notifications for a particular user route
+app.get("/notifications/:userId", async (req, res) => {
+    const userId = req.params.userId;
+
+    try {
+        // Fetch the user from the database based on the userId
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Return the user's notifications as JSON response
+        res.status(200).json({ notifications: user.notifications });
+    } catch (err) {
+        // If an error occurs, send an error response
+        console.error("Error fetching notifications:", err);
+        res.status(500).json({ message: "Error fetching notifications", error: err });
+    }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
