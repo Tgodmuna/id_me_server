@@ -168,33 +168,50 @@ app.post("/register", async (req, res) => {
 
 // OTP Verification Route
 app.post("/verify-otp", async (req, res) => {
-	const { otpid, otp } = req.body;
+    const { otpid, otp } = req.body;
 
-	try {
-		const otpRecord = otpCache.get(otpid);
+    try {
+        const otpRecord = otpCache.get(otpid);
 
-		if (otpRecord && otpRecord.otp === otp) {
-			const { fullname, email, password, language, country } = otpRecord;
-			console.log(fullname, email, password, language, country);
-			const newUser = new User({
-				fullName: fullname,
-				email: email,
-				password: password,
-				language: language,
-				country: country,
-			});
-			await newUser.save();
-			otpCache.del(otpid);
+        if (!otpRecord) {
+            return res.status(400).json({ message: "Invalid OTP ID" });
+        }
 
-			res.status(200).json({ message: "Registration and OTP verification successful" });
-		} else {
-			res.status(400).json({ message: "Invalid OTP" });
-		}
-	} catch (err) {
-		console.error(err); // Log the error for debugging
-		res.status(500).json({ message: "Error verifying OTP", reason: err });
-	}
+        if (otpRecord.otp === otp) {
+            const { fullname, email, password, language, country } = otpRecord;
+
+            // Check if a user with the same email already exists
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                return res.status(400).json({ message: "User already exists with this email" });
+            }
+
+            const newUser = new User({
+                fullName: fullname,
+                email: email,
+                password: password,
+                language: language,
+                country: country,
+            });
+
+            await newUser.save();
+            otpCache.del(otpid);
+
+            return res.status(200).json({ message: "Registration and OTP verification successful" });
+        } else {
+            return res.status(400).json({ message: "Invalid OTP" });
+        }
+    } catch (err) {
+        if (err.code === 11000) {
+            // Handle duplicate key error
+            return res.status(400).json({ message: "User already exists with this email" });
+        }
+
+        console.error("Error during OTP verification:", err); // Improved error logging
+        return res.status(500).json({ message: "Error verifying OTP", reason: err.message });
+    }
 });
+
 
 // Login Route
 app.post("/login", async (req, res) => {
@@ -219,7 +236,7 @@ app.post("/login", async (req, res) => {
 			res.status(400).json({ message: "Invalid email or password" });
 		}
 	} catch (err) {
-		console.error(err); // Log the error for debugging
+		console.error(err); 
 		res.status(500).json({ message: "Error logging in" });
 	}
 });
