@@ -12,9 +12,10 @@ const formDataSchema = new mongoose.Schema({
 	video: String,
 	image: String,
 	iban: String,
+	UserFullName: String,
+	userID: String,
 });
 
 const FormData = mongoose.model("FormData", formDataSchema);
 
 module.exports = FormData;
-
