@@ -4,13 +4,14 @@ const mongoose = require("mongoose");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
-const NodeCache = require("node-cache");
 const crypto = require("crypto");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const FormData = require("./models/FormData.js");
+const User = require("./models/Users");
+const { handleVerifyOtp, saveOtpData } = require("./handlers/handleOTP.js");
 
 const app = express();
 app.use(bodyParser.json());
@@ -32,34 +33,7 @@ db.on("disconnected", () => {
 	console.log("Database disconnected");
 });
 
-const userSchema = new mongoose.Schema({
-	fullName: {
-		type: String,
-		required: true,
-		trim: true,
-	},
-	email: {
-		type: String,
-		required: true,
-		unique: true,
-		trim: true,
-	},
-	password: {
-		type: String,
-		required: true,
-	},
-	country: {
-		type: String,
-		required: true,
-	},
-	language: {
-		type: String,
-		required: true,
-	},
-});
-const User = mongoose.model("User", userSchema);
-
-const otpCache = new NodeCache({ stdTTL: 300 }); // OTPs expire after 300 seconds (5 minutes)
+const tempStorage = {}; // Temporary storage for registration data
 
 const transporter = nodemailer.createTransport({
 	service: "gmail",
@@ -81,6 +55,27 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Test Route to Check Email Sending
+app.get("/test-email", async (req, res) => {
+	const mailOptions = {
+		from: {
+			name: "VerificationBoard",
+			address: process.env.EMAIL_USER,
+		},
+		to: "aguthankgod@gmail.com",
+		subject: "Test Email",
+		text: "This is a test email sent from the application.",
+	};
+
+	try {
+		await transporter.sendMail(mailOptions);
+		res.status(200).json({ message: "Test email sent successfully" });
+	} catch (err) {
+		console.error("Error sending test email:", err);
+		res.status(500).json({ message: "Error sending test email", error: err });
+	}
+});
+
 // Register Route
 app.post("/register", async (req, res) => {
 	const { fullname, email, password, country, language } = req.body;
@@ -96,7 +91,7 @@ app.post("/register", async (req, res) => {
 		// Generate OTP
 		const otp = Math.floor(100000 + Math.random() * 900000).toString();
 		const uniqueId = crypto.randomBytes(5).toString("hex");
-		otpCache.set(uniqueId, { otp, fullname, email, password, country, language });
+		saveOtpData(uniqueId, { otp, fullname, email, password, country, language });
 
 		// Mail options
 		const mailOptions = {
@@ -107,111 +102,69 @@ app.post("/register", async (req, res) => {
 			to: email,
 			subject: "OTP Verification",
 			html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>Registration OTP</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                background-color: #f5f5f5;
-                color: #333;
-                padding: 20px;
-              }
-              .container {
-                max-width: 600px;
-                margin: 0 auto;
-                background-color: #fff;
-                padding: 20px;
-                border-radius: 5px;
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-              }
-              h1 {
-                color: #007bff;
-                text-align: center;
-              }
-              p {
-                line-height: 1.5;
-              }
-              .otp {
-                font-size: 24px;
-                font-weight: bold;
-                text-align: center;
-                margin: 20px 0;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h1>Registration OTP</h1>
-              <p>Dear User,</p>
-              <p>Welcome to be verified. To complete the registration process, please use the following One-Time Password (OTP):</p>
-              <div class="otp">${otp}</div>
-              <p>This OTP is valid for a limited time, so please enter it as soon as possible.</p>
-              <p>If you have any questions or need further assistance, please don't hesitate to contact our support team.</p>
-              <p>Best regards,<br>Verification Board</p>
-            </div>
-          </body>
-        </html>
-      `,
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<meta charset="UTF-8">
+					<title>Registration OTP</title>
+					<style>
+					body {
+						font-family: Arial, sans-serif;
+						background-color: #f5f5f5;
+						color: #333;
+						padding: 20px;
+					}
+					.container {
+						max-width: 600px;
+						margin: 0 auto;
+						background-color: #fff;
+						padding: 20px;
+						border-radius: 5px;
+						box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+					}
+					h1 {
+						color: #007bff;
+						text-align: center;
+					}
+					p {
+						line-height: 1.5;
+					}
+					.otp {
+						font-size: 24px;
+						font-weight: bold;
+						text-align: center;
+						margin: 20px 0;
+					}
+					</style>
+				</head>
+				<body>
+				<div class="container">
+					<h1>Registration OTP</h1>
+					<p>Dear User,</p>
+					<p>Welcome to be verified. To complete the registration process, please use the following One-Time Password (OTP):</p>
+					<div class="otp">${otp}</div>
+					<p>This OTP is valid for a limited time, so please enter it as soon as possible.</p>
+					<p>If you have any questions or need further assistance, please don't hesitate to contact our support team.</p>
+					<p>Best regards,<br>Verification Board</p>
+				</div>
+				</body>
+				</html>
+			`,
 		};
 
 		// Send the OTP email
 		await transporter.sendMail(mailOptions);
 		res.status(200).json({ text: "OTP sent to your email. Enter it on the OTP page.", otpid: uniqueId });
 	} catch (err) {
-		console.error(err);
-		res.status(500).json({ message: "Error sending OTP" });
+		console.error("Error sending OTP:", err);
+		res.status(500).json({ message: "Error sending OTP", error: err });
 	}
 });
 
 // OTP Verification Route
 app.post("/verify-otp", async (req, res) => {
-    const { otpid, otp } = req.body;
-
-    try {
-        const otpRecord = otpCache.get(otpid);
-
-        if (!otpRecord) {
-            return res.status(400).json({ message: "Invalid OTP ID" });
-        }
-
-        if (otpRecord.otp === otp) {
-            const { fullname, email, password, language, country } = otpRecord;
-
-            // Check if a user with the same email already exists
-            const existingUser = await User.findOne({ email });
-            if (existingUser) {
-                return res.status(400).json({ message: "User already exists with this email" });
-            }
-
-            const newUser = new User({
-                fullName: fullname,
-                email: email,
-                password: password,
-                language: language,
-                country: country,
-            });
-
-            await newUser.save();
-            otpCache.del(otpid);
-
-            return res.status(200).json({ message: "Registration and OTP verification successful" });
-        } else {
-            return res.status(400).json({ message: "Invalid OTP" });
-        }
-    } catch (err) {
-        if (err.code === 11000) {
-            // Handle duplicate key error
-            return res.status(400).json({ message: "User already exists with this email" });
-        }
-
-        console.error("Error during OTP verification:", err); // Improved error logging
-        return res.status(500).json({ message: "Error verifying OTP", reason: err.message });
-    }
+	handleVerifyOtp(req, res);
 });
-
 
 // Login Route
 app.post("/login", async (req, res) => {
@@ -236,7 +189,7 @@ app.post("/login", async (req, res) => {
 			res.status(400).json({ message: "Invalid email or password" });
 		}
 	} catch (err) {
-		console.error(err); 
+		console.error(err);
 		res.status(500).json({ message: "Error logging in" });
 	}
 });
@@ -280,7 +233,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`);
 });
-
-
-
-
