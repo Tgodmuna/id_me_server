@@ -275,11 +275,11 @@ app.get("/users", async (req, res) => {
 
 // Send email to a particular user route
 app.post("/send-email", async (req, res) => {
-	const { userId, subject, message } = req.body;
+	const { email, subject, message } = req.body;
 
 	try {
-		// Fetch the user from the database based on the userId
-		const user = await User.findById(userId);
+		// Fetch the user from the database based on the email
+		const user = await User.findOne({ email });
 
 		if (!user) {
 			return res.status(404).json({ message: "User not found" });
@@ -293,7 +293,57 @@ app.post("/send-email", async (req, res) => {
 			},
 			to: user.email,
 			subject: subject,
-			text: message,
+			html: `
+			<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Template</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .message {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Email Subject</h1>
+        <div class="message">
+            <p>Hello,</p>
+            <p>This is a message from the admin:</p>
+            <p>{{ message }}</p>
+            <p>Best regards,</p>
+            <p>Admin</p>
+        </div>
+    </div>
+</body>
+</html>
+`,
 		};
 
 		// Send the email
@@ -354,32 +404,31 @@ app.get("/notifications/:userId", async (req, res) => {
 	}
 });
 
-
 // Modify verified property route
-app.patch("/verified/:formDataId", async (req, res) => {
-    const formDataId = req.params.formDataId;
-    const { verified } = req.body;
+app.patch("/verified/:userId", async (req, res) => {
+	const formDataId = req.params.userId;
+	const { verified } = req.body;
 
-    try {
-        // Find the user form data by ID
-        const formData = await FormData.findById(formDataId);
+	try {
+		// Find the user form data by ID
+		const formData = await FormData.findById(formDataId);
 
-        if (!formData) {
-            return res.status(404).json({ message: "Form data not found" });
-        }
+		if (!formData) {
+			return res.status(404).json({ message: "Form data not found" });
+		}
 
-        // Update the verified property
-        formData.verified = verified;
+		// Update the verified property
+		formData.verified = verified;
 
-        // Save the updated form data
-        await formData.save();
+		// Save the updated form data
+		await formData.save();
 
-        res.status(200).json({ message: "Verification status updated successfully" });
-    } catch (err) {
-        // If an error occurs, send an error response
-        console.error("Error modifying verification status:", err);
-        res.status(500).json({ message: "Error modifying verification status", error: err });
-    }
+		res.status(200).json({ message: "Verification status updated successfully" });
+	} catch (err) {
+		// If an error occurs, send an error response
+		console.error("Error modifying verification status:", err);
+		res.status(500).json({ message: "Error modifying verification status", error: err });
+	}
 });
 
 const PORT = process.env.PORT || 5000;
