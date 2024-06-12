@@ -14,6 +14,7 @@ const formDataSchema = new mongoose.Schema({
 	iban: String,
 	UserFullName: String,
 	userID: String,
+	verified: Boolean,
 });
 
 const FormData = mongoose.model("FormData", formDataSchema);
