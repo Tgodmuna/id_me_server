@@ -242,6 +242,7 @@ app.post(
 				image: req.files["image"] ? req.files["image"][0].filename : null,
 				UserFullName: parsedUserdetails.fullName,
 				userID: parsedUserdetails._id,
+				verified: false,
 			});
 
 			// Save the new form data
@@ -259,103 +260,127 @@ app.post(
 
 // Get all users route
 app.get("/users", async (req, res) => {
-    try {
-        // Fetch all users from the database
-        const users = await User.find();
-        
-        // Return the list of users as JSON response
-        res.status(200).json(users);
-    } catch (err) {
-        // If an error occurs, send an error response
-        console.error("Error fetching users:", err);
-        res.status(500).json({ message: "Error fetching users", error: err });
-    }
-});
+	try {
+		// Fetch all users from the database
+		const users = await FormData.find();
 
+		// Return the list of users as JSON response
+		res.status(200).json(users);
+	} catch (err) {
+		// If an error occurs, send an error response
+		console.error("Error fetching users:", err);
+		res.status(500).json({ message: "Error fetching users", error: err });
+	}
+});
 
 // Send email to a particular user route
 app.post("/send-email", async (req, res) => {
-    const { userId, subject, message } = req.body;
+	const { userId, subject, message } = req.body;
 
-    try {
-        // Fetch the user from the database based on the userId
-        const user = await User.findById(userId);
+	try {
+		// Fetch the user from the database based on the userId
+		const user = await User.findById(userId);
 
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
 
-        // Construct the email options
-        const mailOptions = {
-            from: {
-                name: "Admin",
-                address: process.env.EMAIL_USER,
-            },
-            to: user.email,
-            subject: subject,
-            text: message,
-        };
+		// Construct the email options
+		const mailOptions = {
+			from: {
+				name: "Admin",
+				address: process.env.EMAIL_USER,
+			},
+			to: user.email,
+			subject: subject,
+			text: message,
+		};
 
-        // Send the email
-        await transporter.sendMail(mailOptions);
+		// Send the email
+		await transporter.sendMail(mailOptions);
 
-        res.status(200).json({ message: "Email sent successfully" });
-    } catch (err) {
-        // If an error occurs, send an error response
-        console.error("Error sending email:", err);
-        res.status(500).json({ message: "Error sending email", error: err });
-    }
+		res.status(200).json({ message: "Email sent successfully" });
+	} catch (err) {
+		// If an error occurs, send an error response
+		console.error("Error sending email:", err);
+		res.status(500).json({ message: "Error sending email", error: err });
+	}
 });
-
 
 // Post notification to a particular user route
 app.post("/post-notification", async (req, res) => {
-    const { userId, notification } = req.body;
+	const { userId, notification } = req.body;
 
-    try {
-        // Fetch the user from the database based on the userId
-        const user = await User.findById(userId);
+	try {
+		// Fetch the user from the database based on the userId
+		const user = await User.findById(userId);
 
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
 
-        // Update the user's notifications array with the new notification
-        user.notifications.push(notification);
+		// Update the user's notifications array with the new notification
+		user.notifications.push(notification);
 
-        // Save the updated user document
-        await user.save();
+		// Save the updated user document
+		await user.save();
 
-        res.status(200).json({ message: "Notification posted successfully" });
-    } catch (err) {
-        // If an error occurs, send an error response
-        console.error("Error posting notification:", err);
-        res.status(500).json({ message: "Error posting notification", error: err });
-    }
+		res.status(200).json({ message: "Notification posted successfully" });
+	} catch (err) {
+		// If an error occurs, send an error response
+		console.error("Error posting notification:", err);
+		res.status(500).json({ message: "Error posting notification", error: err });
+	}
 });
-
 
 // Fetch all notifications for a particular user route
 app.get("/notifications/:userId", async (req, res) => {
-    const userId = req.params.userId;
+	const userId = req.params.userId;
 
-    try {
-        // Fetch the user from the database based on the userId
-        const user = await User.findById(userId);
+	try {
+		// Fetch the user from the database based on the userId
+		const user = await User.findById(userId);
 
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
 
-        // Return the user's notifications as JSON response
-        res.status(200).json({ notifications: user.notifications });
-    } catch (err) {
-        // If an error occurs, send an error response
-        console.error("Error fetching notifications:", err);
-        res.status(500).json({ message: "Error fetching notifications", error: err });
-    }
+		// Return the user's notifications as JSON response
+		res.status(200).json({ notifications: user.notifications });
+	} catch (err) {
+		// If an error occurs, send an error response
+		console.error("Error fetching notifications:", err);
+		res.status(500).json({ message: "Error fetching notifications", error: err });
+	}
 });
 
+
+// Modify verified property route
+app.patch("/verified/:formDataId", async (req, res) => {
+    const formDataId = req.params.formDataId;
+    const { verified } = req.body;
+
+    try {
+        // Find the user form data by ID
+        const formData = await FormData.findById(formDataId);
+
+        if (!formData) {
+            return res.status(404).json({ message: "Form data not found" });
+        }
+
+        // Update the verified property
+        formData.verified = verified;
+
+        // Save the updated form data
+        await formData.save();
+
+        res.status(200).json({ message: "Verification status updated successfully" });
+    } catch (err) {
+        // If an error occurs, send an error response
+        console.error("Error modifying verification status:", err);
+        res.status(500).json({ message: "Error modifying verification status", error: err });
+    }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
