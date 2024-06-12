@@ -43,17 +43,10 @@ const transporter = nodemailer.createTransport({
 	},
 });
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-	destination: (req, file, cb) => {
-		cb(null, "uploads/");
-	},
-	filename: (req, file, cb) => {
-		cb(null, uuidv4() + path.extname(file.originalname));
-	},
-});
-
+// Multer storage configuration to use memory storage
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
 
 // Test Route to Check Email Sending
 app.get("/test-email", async (req, res) => {
@@ -194,7 +187,7 @@ app.post("/login", async (req, res) => {
 	}
 });
 
-// New route to handle data submission and save to MongoDB
+// New route to handle data submission and
 app.post(
 	"/upload",
 	upload.fields([
@@ -204,29 +197,22 @@ app.post(
 	]),
 	async (req, res) => {
 		try {
-			// Log the request body and files
-			console.log("Request Body:", req.body);
-			console.log("Uploaded Files:", req.files);
-
 			const { citizenship, firstName, lastName, dob, address, phoneNumber, ssn, iban, userDetails } =
 				req.body;
 
-			// Check if required fields are present
 			if (!citizenship || !firstName || !lastName || !dob || !address || !phoneNumber) {
 				return res.status(400).json({ message: "All fields are required" });
 			}
 
-			// Validate SSN if citizenship is USA
 			if (citizenship === "USA" && !ssn) {
 				return res.status(400).json({ message: "SSN is required for USA citizenship" });
 			}
 
-			// Validate IBAN if citizenship is Germany
 			if (citizenship === "Germany" && !iban) {
 				return res.status(400).json({ message: "IBAN is required for Germany citizenship" });
 			}
 
-			const parsedUserdetails = JSON.parse(userDetails);
+			const parsedUserDetails = JSON.parse(userDetails);
 
 			const newFormData = new FormData({
 				citizenship,
@@ -237,22 +223,34 @@ app.post(
 				phoneNumber,
 				ssn: citizenship === "USA" ? ssn : null,
 				iban: citizenship === "Germany" ? iban : null,
-				document: req.files["document"] ? req.files["document"][0].filename : null,
-				video: req.files["video"] ? req.files["video"][0].filename : null,
-				image: req.files["image"] ? req.files["image"][0].filename : null,
-				UserFullName: parsedUserdetails.fullName,
-				userID: parsedUserdetails._id,
+				document: req.files["document"]
+					? {
+							data: req.files["document"][0].buffer,
+							contentType: req.files["document"][0].mimetype,
+					  }
+					: null,
+				video: req.files["video"]
+					? {
+							data: req.files["video"][0].buffer,
+							contentType: req.files["video"][0].mimetype,
+					  }
+					: null,
+				image: req.files["image"]
+					? {
+							data: req.files["image"][0].buffer,
+							contentType: req.files["image"][0].mimetype,
+					  }
+					: null,
+				UserFullName: parsedUserDetails.fullName,
+				userID: parsedUserDetails._id,
 				verified: false,
 			});
 
-			// Save the new form data
 			await newFormData.save();
 
 			res.status(200).json({ message: "Data uploaded and saved successfully" });
 		} catch (err) {
-			// Log the error
 			console.error("Error:", err);
-
 			res.status(500).json({ message: "Error uploading and saving data", error: err.message });
 		}
 	}
