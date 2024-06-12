@@ -47,7 +47,6 @@ const transporter = nodemailer.createTransport({
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-
 // Test Route to Check Email Sending
 app.get("/test-email", async (req, res) => {
 	const mailOptions = {
@@ -243,6 +242,7 @@ app.post(
 					: null,
 				UserFullName: parsedUserDetails.fullName,
 				userID: parsedUserDetails._id,
+				email: parsedUserDetails.email,
 				verified: false,
 			});
 
@@ -330,11 +330,11 @@ app.post("/send-email", async (req, res) => {
 </head>
 <body>
     <div class="container">
-        <h1>Email Subject</h1>
+        <h1>{${subject}}</h1>
         <div class="message">
             <p>Hello,</p>
             <p>This is a message from the admin:</p>
-            <p>{{ message }}</p>
+            <p>{${message}}</p>
             <p>Best regards,</p>
             <p>Admin</p>
         </div>
