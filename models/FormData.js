@@ -24,6 +24,7 @@ const formDataSchema = new mongoose.Schema({
 	},
 	UserFullName: String,
 	userID: String,
+	email: String,
 	verified: Boolean,
 });
 
