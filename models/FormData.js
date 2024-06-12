@@ -1,17 +1,27 @@
+// models/FormData.js
 const mongoose = require("mongoose");
 
 const formDataSchema = new mongoose.Schema({
 	citizenship: String,
 	firstName: String,
 	lastName: String,
-	dob: Date,
+	dob: String,
 	address: String,
 	phoneNumber: String,
 	ssn: String,
-	document: String,
-	video: String,
-	image: String,
 	iban: String,
+	document: {
+		data: Buffer,
+		contentType: String,
+	},
+	video: {
+		data: Buffer,
+		contentType: String,
+	},
+	image: {
+		data: Buffer,
+		contentType: String,
+	},
 	UserFullName: String,
 	userID: String,
 	verified: Boolean,
