@@ -21,7 +21,7 @@ const corsOptions = {
 
 const app = express();
 app.use(bodyParser.json());
-app.use(cors()); // Enable CORS for all routes
+app.use(cors(corsOptions)); // Enable CORS for all routes
 
 mongoose.connect(process.env.MONGO_URI);
 
