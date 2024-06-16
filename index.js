@@ -14,7 +14,7 @@ const User = require("./models/Users");
 const { handleVerifyOtp, saveOtpData } = require("./handlers/handleOTP.js");
 
 const corsOptions = {
-	origin: "*",
+	origin: "http://localhost:3000",
 	methods: ["GET", "POST", "PATCH", "DELETE"],
 	allowedHeaders: ["Content-Type", "Authorization"],
 };
