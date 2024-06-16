@@ -13,6 +13,12 @@ const FormData = require("./models/FormData.js");
 const User = require("./models/Users");
 const { handleVerifyOtp, saveOtpData } = require("./handlers/handleOTP.js");
 
+const corsOptions = {
+	origin: "*",
+	methods: ["GET", "POST", "PATCH", "DELETE"],
+	allowedHeaders: ["Content-Type", "Authorization"],
+};
+
 const app = express();
 app.use(bodyParser.json());
 app.use(cors()); // Enable CORS for all routes
@@ -257,7 +263,7 @@ app.post(
 );
 
 // Get all users route
-app.get("/users", async (req, res) => {
+app.get("/users", cors(corsOptions), async (req, res) => {
 	try {
 		// Fetch all users from the database
 		const users = await FormData.find();
