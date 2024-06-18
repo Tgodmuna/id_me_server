@@ -34,9 +34,9 @@ const customCors = (req, res, next) => {
 	}
 };
 
-app.use(customCors);
 
 const app = express();
+app.use(customCors);
 app.use(bodyParser.json());
 // app.use(cors(corsOptions)); // Enable CORS for all routes
 
