@@ -34,7 +34,6 @@ const customCors = (req, res, next) => {
 	}
 };
 
-
 const app = express();
 app.use(customCors);
 app.use(bodyParser.json());
@@ -221,6 +220,7 @@ app.post(
 		try {
 			const { citizenship, firstName, lastName, dob, address, phoneNumber, ssn, iban, userDetails } =
 				req.body;
+			console.log("request body", req.body);
 
 			if (!citizenship || !firstName || !lastName || !dob || !address || !phoneNumber) {
 				return res.status(400).json({ message: "All fields are required" });
