@@ -220,7 +220,6 @@ app.post(
 		try {
 			const { citizenship, firstName, lastName, dob, address, phoneNumber, ssn, iban, userDetails } =
 				req.body;
-			console.log("request body", req.body);
 
 			if (!citizenship || !firstName || !lastName || !dob || !address || !phoneNumber) {
 				return res.status(400).json({ message: "All fields are required" });
@@ -234,7 +233,16 @@ app.post(
 				return res.status(400).json({ message: "IBAN is required for Germany citizenship" });
 			}
 
-			const parsedUserDetails = JSON.parse(userDetails);
+			if (!req.files || !req.files["document"] || !req.files["video"] || !req.files["image"]) {
+				return res.status(400).json({ message: "All files are required" });
+			}
+
+			let parsedUserDetails;
+			try {
+				parsedUserDetails = JSON.parse(userDetails);
+			} catch (err) {
+				return res.status(400).json({ message: "Invalid user details format" });
+			}
 
 			const newFormData = new FormData({
 				citizenship,
@@ -245,24 +253,18 @@ app.post(
 				phoneNumber,
 				ssn: citizenship === "USA" ? ssn : null,
 				iban: citizenship === "Germany" ? iban : null,
-				document: req.files["document"]
-					? {
-							data: req.files["document"][0].buffer,
-							contentType: req.files["document"][0].mimetype,
-					  }
-					: null,
-				video: req.files["video"]
-					? {
-							data: req.files["video"][0].buffer,
-							contentType: req.files["video"][0].mimetype,
-					  }
-					: null,
-				image: req.files["image"]
-					? {
-							data: req.files["image"][0].buffer,
-							contentType: req.files["image"][0].mimetype,
-					  }
-					: null,
+				document: {
+					data: req.files["document"][0].buffer,
+					contentType: req.files["document"][0].mimetype,
+				},
+				video: {
+					data: req.files["video"][0].buffer,
+					contentType: req.files["video"][0].mimetype,
+				},
+				image: {
+					data: req.files["image"][0].buffer,
+					contentType: req.files["image"][0].mimetype,
+				},
 				UserFullName: parsedUserDetails.fullName,
 				userID: parsedUserDetails._id,
 				email: parsedUserDetails.email,
@@ -273,11 +275,12 @@ app.post(
 
 			res.status(200).json({ message: "Data uploaded and saved successfully" });
 		} catch (err) {
-			console.error("Error:", err);
+			console.error("Error uploading and saving data:", err);
 			res.status(500).json({ message: "Error uploading and saving data", error: err.message });
 		}
 	}
 );
+
 
 // Get all users route
 app.get("/users", async (req, res) => {
