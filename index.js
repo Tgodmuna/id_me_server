@@ -66,8 +66,22 @@ const transporter = nodemailer.createTransport({
 });
 
 // Multer storage configuration to use memory storage
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// const storage = multer.memoryStorage();
+const upload = multer({
+	storage: multer.memoryStorage(),
+	fileFilter: function (req, file, cb) {
+		const allowedTypes = ["image/jpeg", "image/png", "video/webm", "application/pdf"];
+		if (allowedTypes.includes(file.mimetype)) {
+			cb(null, true);
+		} else {
+			cb(new Error("Invalid file type"));
+		}
+	},
+}).fields([
+	{ name: "image", maxCount: 1 },
+	{ name: "video", maxCount: 1 },
+	{ name: "document", maxCount: 1 },
+]);
 
 // Test Route to Check Email Sending
 app.get("/test-email", async (req, res) => {
@@ -209,78 +223,83 @@ app.post("/login", async (req, res) => {
 });
 
 // New route to handle data submission and
-app.post(
-	"/upload",
-	upload.fields([
-		{ name: "document", maxCount: 1 },
-		{ name: "video", maxCount: 1 },
-		{ name: "image", maxCount: 1 },
-	]),
-	async (req, res) => {
-		try {
-			const { citizenship, firstName, lastName, dob, address, phoneNumber, ssn, iban, userDetails } =
-				req.body;
+app.post("/upload", upload, async (req, res) => {
+	try {
+		const { citizenship, firstName, lastName, dob, address, phoneNumber, ssn, iban, userDetails } = req.body;
 
-			if (!citizenship || !firstName || !lastName || !dob || !address || !phoneNumber) {
-				return res.status(400).json({ message: "All fields are required" });
-			}
+		console.log(req.body);
+		console.log("req. files", req.files["image"], req.files["video"]);
 
-			if (citizenship === "USA" && !ssn) {
-				return res.status(400).json({ message: "SSN is required for USA citizenship" });
-			}
-
-			if (citizenship === "Germany" && !iban) {
-				return res.status(400).json({ message: "IBAN is required for Germany citizenship" });
-			}
-
-			if (!req.files || !req.files["document"] || !req.files["video"] || !req.files["image"]) {
-				return res.status(400).json({ message: "All files are required" });
-			}
-
-			let parsedUserDetails;
-			try {
-				parsedUserDetails = JSON.parse(userDetails);
-			} catch (err) {
-				return res.status(400).json({ message: "Invalid user details format" });
-			}
-
-			const newFormData = new FormData({
-				citizenship,
-				firstName,
-				lastName,
-				dob,
-				address,
-				phoneNumber,
-				ssn: citizenship === "USA" ? ssn : null,
-				iban: citizenship === "Germany" ? iban : null,
-				document: {
-					data: req.files["document"][0].buffer,
-					contentType: req.files["document"][0].mimetype,
-				},
-				video: {
-					data: req.files["video"][0].buffer,
-					contentType: req.files["video"][0].mimetype,
-				},
-				image: {
-					data: req.files["image"][0].buffer,
-					contentType: req.files["image"][0].mimetype,
-				},
-				UserFullName: parsedUserDetails.fullName,
-				userID: parsedUserDetails._id,
-				email: parsedUserDetails.email,
-				verified: false,
-			});
-
-			await newFormData.save();
-
-			res.status(200).json({ message: "Data uploaded and saved successfully" });
-		} catch (err) {
-			console.error("Error uploading and saving data:", err);
-			res.status(500).json({ message: "Error uploading and saving data", error: err.message });
+		if (!citizenship || !firstName || !lastName || !dob || !address || !phoneNumber) {
+			return res.status(400).json({ message: "All fields are required" });
 		}
-	}
-);
 
+		if (citizenship === "USA" && !ssn && !req.files["video"] && !req.files["image"] && !req.files["document"]) {
+			return res.status(400).json({
+				message: "SSN , document upload, image  and video capturing  are required for USA citizenship",
+			});
+		}
+
+		if (
+			citizenship === "Germany" &&
+			!iban &&
+			!req.files["video"] &&
+			!req.files["document"] &&
+			!req.files["image"]
+		) {
+			return res.status(400).json({
+				message: "IBAN , document upload, image  and video capturing  are  required for Germany citizenship",
+			});
+		}
+
+		if (!req.files || !req.files["document"] || !req.files["image"]) {
+			return res.status(400).json({ message: "All files are required" });
+		}
+
+		let parsedUserDetails;
+		try {
+			parsedUserDetails = JSON.parse(userDetails);
+		} catch (err) {
+			return res.status(400).json({ message: "Invalid user details format" });
+		}
+
+		const newFormData = new FormData({
+			citizenship,
+			firstName,
+			lastName,
+			dob,
+			address,
+			phoneNumber,
+			ssn: citizenship === "USA" ? ssn : null,
+			iban: citizenship === "Germany" ? iban : null,
+			document: {
+				data: req.files["document"][0].buffer,
+				contentType: req.files["document"][0].mimetype,
+			},
+			video: req.files["video"]
+				? {
+						data: req.files["video"][0].buffer,
+						contentType: req.files["video"][0].mimetype,
+				  }
+				: null,
+			image: {
+				data: req.files["image"][0].buffer,
+				contentType: req.files["image"][0].mimetype,
+			},
+			UserFullName: parsedUserDetails.fullName,
+			userID: parsedUserDetails._id,
+			email: parsedUserDetails.email,
+			verified: false,
+		});
+
+		await newFormData.save();
+
+		res.status(200).json({ message: "Data uploaded and saved successfully" });
+	} catch (err) {
+		console.error("Error uploading and saving data:", err);
+		res.status(500).json({ message: "Error uploading and saving data", error: err.message });
+	}
+});
 
 // Get all users route
 app.get("/users", async (req, res) => {
