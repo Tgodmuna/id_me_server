@@ -319,8 +319,10 @@ app.get("/users", async (req, res) => {
 // Send email to a particular user route
 app.post( "/send-email", async ( req, res ) => {
 
-	const { email, subject, message } = JSON.parse(req.body);
-	console.log( JSON.parse(req.body) );
+	const { email, subject, message } = req.body;
+	console.log( JSON.parse( req.body ) );
+	console.log( req.body );
+	
 	try
 	{
 		// Fetch the user from the database based on the email
