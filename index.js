@@ -451,6 +451,8 @@ app.get("/notifications/:userId", async (req, res) => {
 app.patch("/verified/:userId", async (req, res) => {
 	const formDataId = req.params.userId;
 	const { verified } = req.body;
+	console.log( "formDataId", formDataId );
+  console.log("verified", verified);
 
 	try {
 		// Find the user form data by ID
