@@ -321,7 +321,8 @@ app.post("/send-email", async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
 
 	const { email, subject, message } = req.body;
-    console.log(req.body);
+	console.log( req.body );
+	console.log( req.body.email );
 
 	try
 	{
