@@ -336,7 +336,7 @@ app.post("/send-email", async (req, res) => {
 		// Construct the email options
 		const mailOptions = {
 			from: {
-				name: "Admin",
+				name: "Verification-Board",
 				address: process.env.EMAIL_USER,
 			},
 			to: user.email,
@@ -383,10 +383,10 @@ app.post("/send-email", async (req, res) => {
         <h1>{${subject}}</h1>
         <div class="message">
             <p>Hello,</p>
-            <p>This is a message from the admin:</p>
-            <p>{${message}}</p>
+            <p>This is a message from the Verification-Board Team:</p>
+            <p>{${ message }}</p>
             <p>Best regards,</p>
-            <p>Admin</p>
+            <p>Verification-Board Team</p>
         </div>
     </div>
 </body>
