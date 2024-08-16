@@ -321,9 +321,8 @@ app.post("/send-email", async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
 
 	const { email, subject, message } = req.body;
-	console.log( JSON.parse( req.body ) );
-	console.log( req.body );
-	
+    console.log(req.body);
+
 	try
 	{
 		// Fetch the user from the database based on the email
