@@ -317,7 +317,8 @@ app.get("/users", async (req, res) => {
 });
 
 // Send email to a particular user route
-app.post( "/send-email", async ( req, res ) => {
+app.post("/send-email", async (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
 
 	const { email, subject, message } = req.body;
 	console.log( JSON.parse( req.body ) );
